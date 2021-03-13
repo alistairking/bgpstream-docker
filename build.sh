@@ -1,14 +1,31 @@
 #!/usr/bin/env bash
+set -e
 
-if [ $# -eq 0 ]
-then
-    tag='latest'
-else
-    tag=$1
+REPO="alistairking"
+
+if [[ $# < 2 ]]; then
+    echo "Usage: $0 {libbgpstream|pybgpstream} version [latest]"
+    exit 1
+fi
+img="$1"
+version="$2"
+if [[ "$3" != "" ]]; then
+    latest="$REPO/$img:latest"
 fi
 
-docker build -f Dockerfile.latest -t caida/bgpstream:$tag .
+latest_tag=""
+if [[ "$latest" != "" ]]; then
+    latest_tag="-t $latest"
+fi
 
-# use command `docker login` to save login credentials to dockerhub
-# use command `docker tag IMAGEID caida/bgpstream:TAG` to duplicate image with different tag name
-# use command `docker push caida/bgpstream:TAG` to push it to dockerhub
+cd $img/
+docker build \
+       --build-arg BS_VERSION=$version \
+       -t $REPO/$img:$version \
+       $latest_tag \
+       .
+
+docker push $REPO/$img:$version
+if [[ "$latest" != "" ]]; then
+    docker push $latest
+fi
