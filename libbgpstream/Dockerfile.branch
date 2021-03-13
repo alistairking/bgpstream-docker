@@ -1,0 +1,33 @@
+# Builds and installs BGPStream from a github branch
+FROM debian:buster-slim
+LABEL maintainer="Alistair King <alistair@kiwimaple.com>"
+
+RUN apt-get update
+RUN apt-get install -y curl lsb-release sudo git
+RUN curl https://pkg.caida.org/os/debian/bootstrap.sh | bash
+RUN apt-get install -y build-essential libwandio1-dev automake libtool
+
+ARG RDK_VERSION="1.6.1"
+RUN mkdir /build/
+RUN cd /build/ && \
+  curl -LO https://github.com/edenhill/librdkafka/archive/v${RDK_VERSION}.tar.gz && \
+  tar zxf v${RDK_VERSION}.tar.gz && \
+  cd librdkafka-${RDK_VERSION} && \
+  ./configure && \
+  make && \
+  make install && \
+  ldconfig
+
+ARG GITHUB_ORG="alistairking"
+ARG BS_BRANCH="master"
+
+RUN cd /build/ && \
+  git clone https://github.com/${GITHUB_ORG}/libbgpstream.git && \
+  cd libbgpstream/ && git checkout ${BS_BRANCH} && \
+  ./autogen.sh && \
+  ./configure ${BS_CONF_ARGS} && \
+  make && \
+  make install && \
+  ldconfig
+
+# TODO: use a multi-stage build and copy out the stuff we've built
